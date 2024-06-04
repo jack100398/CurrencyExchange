@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -46,5 +47,21 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    public function render($request, Throwable $e)
+    {
+        $message = match (get_class($e)) {
+            ValidationException::class => $e->validator->errors()->getMessages(),
+            CurrencyNotExistException::class => "{$request->target} Currency Not Exists",
+            default => $e->getMessage()
+        };
+
+        $code = match (get_class($e)) {
+            ValidationException::class => 422,
+            default => 500
+        };
+
+        return response()->json([$message], $code);
     }
 }
